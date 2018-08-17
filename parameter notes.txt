@@ -1,0 +1,17 @@
+population size = 150
+c1 = 1.0
+c2 = 1.0
+c3 = 0.4
+compatibility threshold = 3.0
+genome mutation rate = 0.8
+    - perturbation rate = 0.9
+    - random value rate = 0.1
+chance of inherited gene being disabled if disabled in either parent = 0.75
+crossover rate = 0.75
+interspecies mating rate = 0.001
+new node mutation rate = 0.03
+new link mutation rate = 0.05
+sigmoid function = sig(4.9x)
+
+If the maximum fitness of a species did not improve in 15 generations, the networks in the stagnant species were not allowed to reproduce.
+The champion of each species with more than five networks was copied into the next generation unchanged.
