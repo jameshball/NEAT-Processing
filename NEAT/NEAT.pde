@@ -1,4 +1,4 @@
-ConnectionCollection connectionGenes;
+ConnectionGeneCollection connectionGenes;
 
 void setup() {
   
