@@ -14,4 +14,10 @@ class Node {
     nodeType = nodeTypeInput;
     layer = layerInput;
   }
+  
+  Node(Node n) {
+    id = n.id;
+    nodeType = n.nodeType;
+    layer = n.layer;
+  }
 }

@@ -6,6 +6,7 @@ class Genome {
   int inputNodeCount;
   int outputNodeCount;
   int layerCount;
+  int species;
   
   float fitness;
   
@@ -13,16 +14,16 @@ class Genome {
   static final float uniformPerturbed = 0.9;
   static final float newNodeRate = 0.03;
   static final float newLinkRate = 0.05;
-  static final float geneDisabledInChild = 0.75;
   
   static final float sigmoidConst = 4.9;
   
-  Genome(int inputNodesNo, int outputNodesNo) {
+  Genome(int inputNodesNo, int outputNodesNo, boolean isChild) {
     inputNodeCount = inputNodesNo;
     outputNodeCount = outputNodesNo;
     network = new ArrayList<Connection>();
     nodes = new ArrayList<Node>();
     nodeCount = 0;
+    species = 0;
     
     for (int i = 0; i < inputNodesNo; i++) {
       addNode(NodeTypes.INPUT);
@@ -32,54 +33,74 @@ class Genome {
       addNode(NodeTypes.OUTPUT);
     }
     
-    for (int i = 0; i < inputNodesNo; i++) {
-      for (int j = inputNodesNo; j < outputNodesNo; j++) {
-        network.add(new Connection(connectionGenes.returnGene(nodes.get(i).id, nodes.get(j).id), random(-1, 1), true));
+    if (!isChild) {
+      for (int i = 0; i < inputNodesNo; i++) {
+        for (int j = inputNodesNo; j < inputNodesNo + outputNodesNo; j++) {
+          network.add(new Connection(connectionGenes.returnGene(nodes.get(i).id, nodes.get(j).id), random(-1, 1), true));
+        }
       }
+      formatNodes();
     }
+    
+    
+    
   }
   
   void mutate() {
     if (random(1) < weightMutationRate) {
-      for (int i = 0; i < network.size(); i++) {
-        Connection connection = network.get(i);
-        
-        if (random(1) < uniformPerturbed) {
-          uniformPerturbation(connection);
-        }
-        else {
-          connection.weight = random(-1, 1);
-        }
-      }
+      mutateConnectionWeights();
     }
     
     if (random(1) < newNodeRate) {
-      addNode(NodeTypes.HIDDEN);
-      int newNode = nodes.get(nodes.size() - 1).id;
-      
-      int randIndex = (int)random(network.size());
-      
-      Connection oldConnection = network.get(randIndex);
-      oldConnection.enabled = false;
-      network.add(new Connection(connectionGenes.returnGene(oldConnection.gene.in, newNode), 1, true));
-      network.add(new Connection(connectionGenes.returnGene(newNode, oldConnection.gene.out), oldConnection.weight, true));
+      mutateAddNode();
     }
     
     if (random(1) < newLinkRate) {
-      int inNode = (int)random(nodes.size());
-      int outNode = (int)random(nodes.size());
+      mutateAddConnection();
+    }
+  }
+  
+  void mutateAddNode() {
+    addNode(NodeTypes.HIDDEN);
+    int newNode = nodes.get(nodes.size() - 1).id;
+    
+    int randIndex = (int)random(network.size());
+    
+    Connection oldConnection = network.get(randIndex);
+    oldConnection.enabled = false;
+    network.add(new Connection(connectionGenes.returnGene(oldConnection.gene.in, newNode), 1, true));
+    network.add(new Connection(connectionGenes.returnGene(newNode, oldConnection.gene.out), oldConnection.weight, true));
+  }
+  
+  void mutateAddConnection() {
+    if (network.size() != inputNodeCount * outputNodeCount) {
+      int inNode = (int)random(1, nodes.size());
+      int outNode = (int)random(1, nodes.size());
       
-      while (inNode == outNode || connectionExists(inNode, outNode) || nodes.get(outNode).nodeType == NodeTypes.INPUT) {
-        inNode = (int)random(nodes.size());
-        outNode = (int)random(nodes.size());
+      while (inNode == outNode || connectionExists(inNode, outNode) || nodes.get(outNode).nodeType == NodeTypes.INPUT || nodes.get(inNode).nodeType == NodeTypes.OUTPUT) {
+        inNode = (int)random(1, nodes.size());
+        outNode = (int)random(1, nodes.size());
       }
       
       network.add(new Connection(connectionGenes.returnGene(inNode, outNode), random(-1, 1), true));
     }
   }
   
+  void mutateConnectionWeights() {
+    for (int i = 0; i < network.size(); i++) {
+      Connection connection = network.get(i);
+      
+      if (random(1) < uniformPerturbed) {
+        uniformPerturbation(connection);
+      }
+      else {
+        connection.weight = random(-1, 1);
+      }
+    }
+  }
+  
   void uniformPerturbation(Connection connection) {
-    connection.weight += randomGaussian() / 5;
+    connection.weight += randomGaussian() / 8;
     
     if (connection.weight > 1) {
       connection.weight = 1;
@@ -114,29 +135,45 @@ class Genome {
   //Function to place nodes into layers so we can feedforward.
   void formatNodes() {
     ArrayList<Node> processedNodes = new ArrayList<Node>();
+    ArrayList<Node> otherNodes = new ArrayList<Node>();
     ArrayList<Connection> networkCopy = new ArrayList<Connection>(network);
     
-    for (int i = 0; i < inputNodeCount; i++) {
-      processedNodes.add(nodes.get(i));
+    for (int i = 0; i < nodes.size(); i++) {
+      if (nodes.get(i).nodeType == NodeTypes.INPUT) {
+        processedNodes.add(nodes.get(i));
+      }
+      else {
+        otherNodes.add(new Node(nodes.get(i)));
+      }
     }
     
     layerCount = 1;
     
-    while (networkCopy.size() > 0) {
-      for (int i = 0; i < networkCopy.size(); i++) {
-        Connection c = networkCopy.get(i);
+    while (otherNodes.size() > 0) {
+      if (layerCount > 50) {
+        println("HELP");
+      }
+      
+      ArrayList<Node> layerNodes = new ArrayList<Node>();
+      
+      for (int i = 0; i < otherNodes.size(); i++) {
+        Node outNode = otherNodes.get(i);
         
-        if (isWithinNodeList(processedNodes, c.gene.in) && allInputsWithinList(networkCopy, processedNodes, c.gene.out)) {
-          Node outNode = nodes.get(c.gene.out);
+        if (allInputsWithinList(networkCopy, processedNodes, outNode.id)) {
           outNode.layer = layerCount;
           
-          processedNodes.add(outNode);
-          networkCopy.remove(i);
+          layerNodes.add(outNode);
+          otherNodes.remove(i);
+          i--;
         }
       }
       
+      processedNodes.addAll(layerNodes);
+      
       layerCount++;
     }
+    
+    nodes = processedNodes;
   }
   
   boolean isWithinNodeList (ArrayList<Node> n, int id) {
@@ -149,12 +186,12 @@ class Genome {
     return false;
   }
   
-  boolean allInputsWithinList (ArrayList<Connection> c, ArrayList<Node> n, int out) {
-    for (int i = 0; i < c.size(); i++) {
-      Connection current = c.get(i);
+  boolean allInputsWithinList (ArrayList<Connection> cs, ArrayList<Node> n, int out) {
+    for (int i = 0; i < cs.size(); i++) {
+      Connection c = cs.get(i);
       
-      if (current.gene.out == out) {
-        if (!isWithinNodeList(n, current.gene.in)) {
+      if (c.gene.out == out) {
+        if (!isWithinNodeList(n, c.gene.in)) {
           return false;
         }
       }
@@ -163,56 +200,18 @@ class Genome {
     return true;
   }
   
-  void updateFitness(float score) {
-    fitness = score * score;
-  }
-  
-  Genome crossover(Genome p2) {
-    Genome child = new Genome(inputNodeCount, outputNodeCount);
-    ArrayList<Connection> networkCopy1 = new ArrayList<Connection>(network);
-    ArrayList<Connection> networkCopy2 = new ArrayList<Connection>(p2.network);
-    
-    for (int i = 0; i < networkCopy1.size(); i++) {
-      Connection c1 = networkCopy1.get(i);
+  void removeAllInputsInList (ArrayList<Connection> cs, ArrayList<Node> n, int out) {
+    for (int i = 0; i < cs.size(); i++) {
+      Connection c = cs.get(i);
       
-      for (int j = 0; j < networkCopy2.size(); j++) {
-        Connection c2 = networkCopy2.get(j);
-        
-        if (c2.gene.innovationNumber == c1.gene.innovationNumber) {
-          if (random(1) < geneDisabledInChild && (!c1.enabled || !c2.enabled)) {
-            c1.enabled = false;
-            c2.enabled = false;
-          }
-          else {
-            c1.enabled = true;
-            c2.enabled = true;
-          }
-          
-          if (random(1) < 0.5) {
-            child.network.add(c1);
-          }
-          else {
-            child.network.add(c2);
-          }
-          
-          if (!isWithinNodeList(child.nodes, c1.gene.out)) {
-            child.addNode(NodeTypes.HIDDEN);
-          }
-          
-          networkCopy1.remove(i);
-          networkCopy2.remove(j);
-        }
+      if (c.gene.out == out) {
+        cs.remove(i);
       }
     }
-    
-    if (fitness >= p2.fitness) {
-      child.network.addAll(networkCopy1);
-    }
-    else {
-      child.network.addAll(networkCopy2);
-    }
-    
-    return child;
+  }
+  
+  void updateFitness(float score) {
+    fitness = score * score;
   }
   
   float[] feedForward(float[] input) {
@@ -235,12 +234,11 @@ class Genome {
           }
         }
         
-        for (int i = 0; i < network.size(); i++) {
-          Connection c = network.get(i);
-          Node n = nodes.get(c.gene.in - 1);
+        for (int i = 0; i < nodes.size(); i++) {
+          Node n = nodes.get(i);
           
-          if (n.layer == currentLayer) {
-            nodeValues[c.gene.out - 1] = sigmoid(nodeValues[c.gene.out - 1], sigmoidConst);
+          if (n.layer == currentLayer + 1) {
+            nodeValues[i] = sigmoid(nodeValues[i], sigmoidConst);
           }
         }
         
@@ -256,6 +254,7 @@ class Genome {
         
         if (n.layer == layerCount - 1) {
           output[currentNode] = nodeValues[i];
+          currentNode++;
         }
       }
       

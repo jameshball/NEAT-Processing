@@ -5,11 +5,6 @@ class Player {
   PVector startAngle;
   float[] input = new float[0];
   
-  Player(int inputNodes, int outputNodes) {
-    genome = new Genome(inputNodes, outputNodes);
-    level = new Level(20, 20);
-  }
-  
   Player(Genome genomeInput) {
     genome = genomeInput;
     level = new Level(20, 20);
@@ -39,5 +34,9 @@ class Player {
     }
     
     level.frameRateUpdate();
+  }
+  
+  boolean dead() {
+    return level.snake.dead;
   }
 }

@@ -5,7 +5,6 @@ class Level {
   Snake snake;
   Apple apple;
   int score = 0;
-  int fitness;
   boolean isBest = false;
   int movesOfLastApple;
   int framesPerMove = 0;
@@ -101,7 +100,6 @@ class Level {
     
     if (!snake.withinBounds() || snake.hitTail() || moves - movesOfLastApple > allowedMoves) {
       snake.dead = true;
-      calculateFitness();
     }
   }
   
@@ -125,10 +123,6 @@ class Level {
     for (int i = 0; i < grid.length; i++) {
       grid[i] = new int[gridY];
     }
-  }
-  
-  void calculateFitness() {
-    fitness = score * score;
   }
   
   boolean withinBounds(PVector loc) {
@@ -166,7 +160,7 @@ class Level {
     
     vision[2] = 1.0 / (float)dist;
     
-    return Arrays.asList(vision); //<>//
+    return Arrays.asList(vision);
   }
   
   float[] vision() {
