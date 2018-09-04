@@ -41,11 +41,9 @@ class Population {
       }
       
       newGenomes[i].mutate();
-      newGenomes[i].species = placeInSpecies(newGenomes[i], newGenomes);
+      newGenomes[i].species = placeInSpecies(newGenomes[i], genomes);
       newGenomes[i].formatNodes();
     }
-    
-    
     
     genomes = newGenomes;
     gen++;
@@ -65,25 +63,20 @@ class Population {
     }
   }
   
-  int placeInSpecies (Genome g, Genome[] newGenomes) {
-    if (speciesCount > 1) {
-      println("YES");
-    }
+  int placeInSpecies (Genome g, Genome[] genomeArr) {
+    Genome rep = null;
     
     for (int i = 0; i < speciesCount; i++) {
-      Genome rep = null;
-      
-      for (int j = 0; j < newGenomes.length; j++) {
-        if (newGenomes[j] != null) {
-          if (newGenomes[j].species == i) {
-            rep = newGenomes[j];
+      for (int j = 0; j < genomeArr.length; j++) {
+        if (genomeArr[j] != null) {
+          if (genomeArr[j].species == i) {
+            rep = genomeArr[j];
             break;
           }
         }
       }
       
       if (compatibilityDistance(g, rep) < compatibilityThreshold) {
-        println(compatibilityDistance(g, rep));
         return i;
       }
     }
@@ -97,8 +90,6 @@ class Population {
     
     float runningSum = 0;
     float cutOff;
-    
-    //println(fitnessSum() + " - " + fitnessSum(g.species));
     
     if (parentOfOtherSpecies) {
       cutOff = random(fitnessSum());
@@ -236,10 +227,22 @@ class Population {
         child.network.addAll(networkCopy2);
       }
       
-      for (int i = 0; i < child.network.size(); i++) {
-        if (child.network.get(i).gene.out > child.nodes.size()) {
-          child.addNode(NodeTypes.HIDDEN);
+      int maxNode = child.network.get(0).gene.in;
+      if (child.network.get(0).gene.out > maxNode) {
+        maxNode = child.network.get(0).gene.out;
+      }
+      
+      for (int i = 1; i < child.network.size(); i++) {
+        if (child.network.get(i).gene.in > maxNode) {
+          maxNode = child.network.get(i).gene.in;
         }
+        if (child.network.get(i).gene.out > maxNode) {
+          maxNode = child.network.get(i).gene.out;
+        }
+      }
+      
+      while (maxNode != child.nodeCount) {
+        child.addNode(NodeTypes.HIDDEN);
       }
       
       return child;

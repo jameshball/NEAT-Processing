@@ -68,21 +68,27 @@ class Genome {
     
     Connection oldConnection = network.get(randIndex);
     oldConnection.enabled = false;
+    if (oldConnection.gene.in > nodes.size() || newNode > nodes.size() || oldConnection.gene.out > nodes.size()) {
+      println("ERROR"); //<>//
+    }
     network.add(new Connection(connectionGenes.returnGene(oldConnection.gene.in, newNode), 1, true));
     network.add(new Connection(connectionGenes.returnGene(newNode, oldConnection.gene.out), oldConnection.weight, true));
   }
   
   void mutateAddConnection() {
     if (network.size() != inputNodeCount * outputNodeCount) {
-      int inNode = (int)random(1, nodes.size());
-      int outNode = (int)random(1, nodes.size());
+      int inNode = (int)random(0, nodes.size());
+      int outNode = (int)random(0, nodes.size());
       
-      while (inNode == outNode || connectionExists(inNode, outNode) || nodes.get(outNode).nodeType == NodeTypes.INPUT || nodes.get(inNode).nodeType == NodeTypes.OUTPUT) {
-        inNode = (int)random(1, nodes.size());
-        outNode = (int)random(1, nodes.size());
+      while (inNode == outNode || connectionExists(outNode + 1, inNode + 1) || connectionExists(inNode + 1, outNode + 1) || nodes.get(outNode).nodeType == NodeTypes.INPUT || nodes.get(inNode).nodeType == NodeTypes.OUTPUT) {
+        inNode = (int)random(0, nodes.size());
+        outNode = (int)random(0, nodes.size());
       }
       
-      network.add(new Connection(connectionGenes.returnGene(inNode, outNode), random(-1, 1), true));
+      network.add(new Connection(connectionGenes.returnGene(inNode + 1, outNode + 1), random(-1, 1), true));
+      if (inNode + 1 > nodes.size() || outNode + 1 > nodes.size()) {
+        println("ERROR"); //<>//
+      }
     }
   }
   
@@ -151,7 +157,7 @@ class Genome {
     
     while (otherNodes.size() > 0) {
       if (layerCount > 50) {
-        println("HELP");
+        println("ERROR"); //<>//
       }
       
       ArrayList<Node> layerNodes = new ArrayList<Node>();
@@ -169,6 +175,12 @@ class Genome {
       }
       
       processedNodes.addAll(layerNodes);
+      
+      Collections.sort(processedNodes, new Comparator<Node>(){
+        public int compare(Node n1, Node n2) {
+          return Integer.compare(n1.id, n2.id);
+        }
+      });
       
       layerCount++;
     }
@@ -192,6 +204,7 @@ class Genome {
       
       if (c.gene.out == out) {
         if (!isWithinNodeList(n, c.gene.in)) {
+          println(i);
           return false;
         }
       }
@@ -267,5 +280,15 @@ class Genome {
   
   float sigmoid(float f, float mult) {
     return 1.0 / (1.0 + exp(-mult * f));
+  }
+  
+  boolean nodeExists(int id) {
+    for (int i = 0; i < nodes.size(); i++) {
+      if (nodes.get(i).id == id) {
+        return true;
+      }
+    }
+    
+    return false;
   }
 }

@@ -11,7 +11,8 @@ class PlayerPopulation {
   }
   
   void show() {
-    showBestPlayers();
+    players[0].level.isBest = true;
+    players[0].show();
   }
   
   void update() {
@@ -21,7 +22,7 @@ class PlayerPopulation {
     
     if (isAllDead()) {
       setFitness();
-      //println(avgScore());
+      println(avgScore());
       p.naturalSelection();
       setPlayers(players.length);
     }
@@ -59,42 +60,5 @@ class PlayerPopulation {
     }
     
     return true;
-  }
-  
-  void showBestPlayers() {
-    if (playersRendered > 0) {
-      if (frameCount - framesSinceLastSort > 200) {
-        Arrays.sort(players, new Comparator<Player>() {
-          @Override
-          public int compare(Player p1, Player p2) {
-            int score1 = p1.level.score;
-            int score2 = p2.level.score;
-            
-            if (p1.level.snake.dead) {
-              score1 = -1;
-            }
-            
-            if (p2.level.snake.dead) {
-              score2 = -1;
-            }
-            
-            return Float.compare(score1, score2);
-          }
-        });
-        
-        Collections.reverse(Arrays.asList(players));
-        
-        framesSinceLastSort = frameCount;
-      }
-      
-      for (int i = 1; i < playersRendered; i++) {
-        players[i].show();
-        players[i].level.isBest = false;
-      }
-      
-      players[0].level.isBest = true;
-      players[0].show();
-    }
-    
   }
 }
