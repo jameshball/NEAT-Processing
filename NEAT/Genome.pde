@@ -77,12 +77,12 @@ class Genome {
   
   void mutateAddConnection() {
     if (network.size() != inputNodeCount * outputNodeCount) {
-      int inNode = (int)random(0, nodes.size());
-      int outNode = (int)random(0, nodes.size());
+      int inNode = (int)random(0, nodes.size() - outputNodeCount - 1);
+      int outNode = (int)random(inNode + 1, nodes.size());
       
-      while (inNode == outNode || connectionExists(outNode + 1, inNode + 1) || connectionExists(inNode + 1, outNode + 1) || nodes.get(outNode).nodeType == NodeTypes.INPUT || nodes.get(inNode).nodeType == NodeTypes.OUTPUT) {
-        inNode = (int)random(0, nodes.size());
-        outNode = (int)random(0, nodes.size());
+      while (connectionExists(outNode + 1, inNode + 1) || connectionExists(inNode + 1, outNode + 1)) {
+        inNode = (int)random(0, nodes.size() - outputNodeCount - 1);
+        outNode = (int)random(inNode + 1, nodes.size());
       }
       
       network.add(new Connection(connectionGenes.returnGene(inNode + 1, outNode + 1), random(-1, 1), true));
@@ -204,7 +204,7 @@ class Genome {
       
       if (c.gene.out == out) {
         if (!isWithinNodeList(n, c.gene.in)) {
-          println(i);
+          //println(i);
           return false;
         }
       }
